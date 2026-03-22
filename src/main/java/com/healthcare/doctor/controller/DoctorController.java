@@ -31,6 +31,7 @@ public class DoctorController {
     }
     
     @GetMapping("/email/{email}")
+    @PreAuthorize("hasRole('DOCTOR') or hasRole('ADMIN')")
     public ResponseEntity<Doctor> getDoctorByEmail(@PathVariable String email) {
         return doctorService.getDoctorByEmail(email)
                 .map(ResponseEntity::ok)

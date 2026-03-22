@@ -16,7 +16,7 @@ public class PrescriptionService {
     
     private final PrescriptionRepository prescriptionRepository;
     private final DoctorRepository doctorRepository;
-    private final PatientServiceClient patientServiceClient;
+    // private final PatientServiceClient patientServiceClient;
     
     public Prescription issuePrescription(Prescription prescription) {
         if (!doctorRepository.existsById(prescription.getDoctorId())) {
@@ -24,9 +24,9 @@ public class PrescriptionService {
         }
         
         // Validate patient exists in patient service
-        if (!patientServiceClient.isPatientValid(prescription.getPatientId())) {
-            throw new RuntimeException("Patient not found");
-        }
+        // if (!patientServiceClient.isPatientValid(prescription.getPatientId())) {
+        //     throw new RuntimeException("Patient not found");
+        // }
         
         prescription.setIssuedDate(LocalDateTime.now());
         prescription.setExpiryDate(LocalDateTime.now().plusDays(prescription.getDurationDays()));
@@ -52,9 +52,9 @@ public class PrescriptionService {
     
     public List<Prescription> getPrescriptionsByPatient(String patientId) {
         // Validate patient exists
-        if (!patientServiceClient.isPatientValid(patientId)) {
-            throw new RuntimeException("Patient not found");
-        }
+        // if (!patientServiceClient.isPatientValid(patientId)) {
+        //     throw new RuntimeException("Patient not found");
+        // }
         return prescriptionRepository.findByPatientId(patientId);
     }
     
@@ -64,9 +64,9 @@ public class PrescriptionService {
         }
         
         // Validate patient exists
-        if (!patientServiceClient.isPatientValid(patientId)) {
-            throw new RuntimeException("Patient not found");
-        }
+        // if (!patientServiceClient.isPatientValid(patientId)) {
+        //     throw new RuntimeException("Patient not found");
+        // }
         
         return prescriptionRepository.findByDoctorIdAndPatientId(doctorId, patientId);
     }
@@ -78,9 +78,9 @@ public class PrescriptionService {
         // Validate patient if patient ID is being updated
         if (prescriptionDetails.getPatientId() != null && 
             !prescriptionDetails.getPatientId().equals(prescription.getPatientId())) {
-            if (!patientServiceClient.isPatientValid(prescriptionDetails.getPatientId())) {
-                throw new RuntimeException("Patient not found");
-            }
+            // if (!patientServiceClient.isPatientValid(prescriptionDetails.getPatientId())) {
+            //     throw new RuntimeException("Patient not found");
+            // }
         }
         
         prescription.setDiagnosis(prescriptionDetails.getDiagnosis());

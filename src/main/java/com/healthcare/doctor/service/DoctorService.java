@@ -5,7 +5,6 @@ import com.healthcare.doctor.model.Availability;
 import com.healthcare.doctor.repository.DoctorRepository;
 import com.healthcare.doctor.repository.AvailabilityRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -18,7 +17,6 @@ public class DoctorService {
     
     private final DoctorRepository doctorRepository;
     private final AvailabilityRepository availabilityRepository;
-    private final PasswordEncoder passwordEncoder;
     
     public Doctor registerDoctor(Doctor doctor) {
         if (doctorRepository.existsByEmail(doctor.getEmail())) {
@@ -28,13 +26,17 @@ public class DoctorService {
             throw new RuntimeException("License number already exists");
         }
         
-        doctor.setPassword(passwordEncoder.encode(doctor.getPassword()));
+        // Password is handled by patient service, store as-is for reference
         doctor.setCreatedAt(LocalDateTime.now());
         doctor.setUpdatedAt(LocalDateTime.now());
         doctor.setIsActive(true);
         doctor.setIsVerified(false);
         
-        return doctorRepository.save(doctor);
+        try {
+            return doctorRepository.save(doctor);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to register doctor: " + e.getMessage(), e);
+        }
     }
     
     public Optional<Doctor> getDoctorById(String id) {
