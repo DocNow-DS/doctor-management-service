@@ -10,7 +10,7 @@ import java.util.Optional;
 
 @Repository
 public interface AvailabilityRepository extends MongoRepository<Availability, String> {
-    List<Availability> findByDoctorId(String doctorId);
-    Optional<Availability> findByDoctorIdAndDayOfWeek(String doctorId, DayOfWeek dayOfWeek);
-    void deleteByDoctorId(String doctorId);
+    List<Availability> findByUserId(String userId);
+    Optional<Availability> findByUserIdAndDayOfWeek(String userId, DayOfWeek dayOfWeek);
+    void deleteByUserId(String userId);
 }

@@ -18,7 +18,7 @@ public class Prescription {
     
     @Id
     private String id;
-    private String doctorId;
+    private String userId;
     private String patientId;
     private String appointmentId;
     private String diagnosis;

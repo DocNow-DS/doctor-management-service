@@ -19,7 +19,7 @@ public class Availability {
     
     @Id
     private String id;
-    private String doctorId;
+    private String userId;
     private DayOfWeek dayOfWeek;
     private LocalTime startTime;
     private LocalTime endTime;

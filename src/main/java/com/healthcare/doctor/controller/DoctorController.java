@@ -1,15 +1,18 @@
 package com.healthcare.doctor.controller;
 
 import com.healthcare.doctor.dto.AuthResponse;
-import com.healthcare.doctor.model.Doctor;
-import com.healthcare.doctor.service.DoctorService;
+import com.healthcare.doctor.dto.DoctorProfileDto;
+import com.healthcare.doctor.service.PatientServiceClient;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/doctors")
@@ -17,128 +20,86 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class DoctorController {
 
-    private final DoctorService doctorService;
+    private final PatientServiceClient patientServiceClient;
+    private final RestTemplate restTemplate;
 
-    /**
-     * Register a new doctor profile (called after auth registration in
-     * patient-service).
-     * Requires DOCTOR or ADMIN role.
-     */
-    @PostMapping("/register")
-    @PreAuthorize("hasRole('DOCTOR') or hasRole('ADMIN')")
-    public ResponseEntity<Doctor> registerDoctor(@RequestBody Doctor doctor,
-            @AuthenticationPrincipal AuthResponse.User currentUser) {
-        // Link the doctor profile to the authenticated user's ID from the shared users
-        // collection
-        if (currentUser != null && doctor.getUserId() == null) {
-            doctor.setUserId(currentUser.getId());
-        }
-        Doctor registeredDoctor = doctorService.registerDoctor(doctor);
-        return ResponseEntity.ok(registeredDoctor);
-    }
+    @Value("${patient.service.url:http://localhost:8081}")
+    private String patientServiceUrl;
 
     /**
      * Get the currently authenticated doctor's profile.
-     * Requires DOCTOR role.
+     * Proxies to patient-service to get user data.
      */
     @GetMapping("/me")
     @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<Doctor> getMyProfile(@AuthenticationPrincipal AuthResponse.User currentUser) {
+    public ResponseEntity<?> getMyProfile(@AuthenticationPrincipal AuthResponse.User currentUser) {
         if (currentUser == null) {
             return ResponseEntity.status(401).build();
         }
-        // Look up doctor profile by the userId stored in the shared users collection
-        return doctorService.getDoctorByUserId(currentUser.getId())
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        // Proxy to patient service to get full user profile
+        try {
+            ResponseEntity<DoctorProfileDto> response = restTemplate.getForEntity(
+                    patientServiceUrl + "/api/auth/users/" + currentUser.getId(),
+                    DoctorProfileDto.class);
+            return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     /**
      * Update the currently authenticated doctor's profile.
+     * Proxies to patient-service to update user data.
      */
     @PutMapping("/me")
     @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<Doctor> updateMyProfile(@AuthenticationPrincipal AuthResponse.User currentUser,
-            @RequestBody Doctor doctorDetails) {
+    public ResponseEntity<?> updateMyProfile(@AuthenticationPrincipal AuthResponse.User currentUser,
+            @RequestBody Map<String, Object> doctorDetails) {
         if (currentUser == null) {
             return ResponseEntity.status(401).build();
         }
         try {
-            Doctor updated = doctorService.updateDoctorByUserId(currentUser.getId(), doctorDetails);
-            return ResponseEntity.ok(updated);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            restTemplate.put(patientServiceUrl + "/api/auth/users/" + currentUser.getId(), doctorDetails);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
         }
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Doctor> getDoctorById(@PathVariable String id) {
-        return doctorService.getDoctorById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @GetMapping("/email/{email}")
-    @PreAuthorize("hasRole('DOCTOR') or hasRole('ADMIN')")
-    public ResponseEntity<Doctor> getDoctorByEmail(@PathVariable String email) {
-        return doctorService.getDoctorByEmail(email)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Doctor> updateDoctor(@PathVariable String id, @RequestBody Doctor doctorDetails) {
+    public ResponseEntity<DoctorProfileDto> getDoctorById(@PathVariable String id) {
         try {
-            Doctor updatedDoctor = doctorService.updateDoctor(id, doctorDetails);
-            return ResponseEntity.ok(updatedDoctor);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteDoctor(@PathVariable String id) {
-        try {
-            doctorService.deleteDoctor(id);
-            return ResponseEntity.ok().build();
-        } catch (RuntimeException e) {
+            ResponseEntity<DoctorProfileDto> response = restTemplate.getForEntity(
+                    patientServiceUrl + "/api/auth/users/" + id,
+                    DoctorProfileDto.class);
+            return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
+        } catch (Exception e) {
             return ResponseEntity.notFound().build();
         }
     }
 
     @GetMapping
-    public ResponseEntity<List<Doctor>> getAllDoctors() {
-        List<Doctor> doctors = doctorService.getAllDoctors();
-        return ResponseEntity.ok(doctors);
-    }
-
-    @GetMapping("/specialization/{specialization}")
-    public ResponseEntity<List<Doctor>> getDoctorsBySpecialization(@PathVariable String specialization) {
-        List<Doctor> doctors = doctorService.getDoctorsBySpecialization(specialization);
-        return ResponseEntity.ok(doctors);
-    }
-
-    @PostMapping("/{id}/verify")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Doctor> verifyDoctor(@PathVariable String id) {
+    public ResponseEntity<List> getAllDoctors() {
+        // Get all users with DOCTOR role from patient service
         try {
-            Doctor verifiedDoctor = doctorService.verifyDoctor(id);
-            return ResponseEntity.ok(verifiedDoctor);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            ResponseEntity<List> response = restTemplate.getForEntity(
+                    patientServiceUrl + "/api/admin/doctors",
+                    List.class);
+            return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(null);
         }
     }
 
-    @PostMapping("/{id}/toggle-status")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Doctor> toggleDoctorStatus(@PathVariable String id) {
+    @GetMapping("/specialization/{specialization}")
+    public ResponseEntity<List> getDoctorsBySpecialization(@PathVariable String specialization) {
         try {
-            Doctor updatedDoctor = doctorService.toggleDoctorStatus(id);
-            return ResponseEntity.ok(updatedDoctor);
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            ResponseEntity<List> response = restTemplate.getForEntity(
+                    patientServiceUrl + "/api/admin/doctors/specialty?specialty=" + specialization,
+                    List.class);
+            return ResponseEntity.status(response.getStatusCode()).body(response.getBody());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(null);
         }
     }
 }

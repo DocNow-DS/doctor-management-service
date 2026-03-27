@@ -10,10 +10,10 @@ import java.util.Optional;
 
 @Repository
 public interface PrescriptionRepository extends MongoRepository<Prescription, String> {
-    List<Prescription> findByDoctorId(String doctorId);
+    List<Prescription> findByUserId(String userId);
     List<Prescription> findByPatientId(String patientId);
-    List<Prescription> findByDoctorIdAndPatientId(String doctorId, String patientId);
-    Optional<Prescription> findByIdAndDoctorId(String id, String doctorId);
-    List<Prescription> findByDoctorIdAndIssuedDateBetween(String doctorId, LocalDateTime startDate, LocalDateTime endDate);
-    void deleteByDoctorIdAndId(String doctorId, String id);
+    List<Prescription> findByUserIdAndPatientId(String userId, String patientId);
+    Optional<Prescription> findByIdAndUserId(String id, String userId);
+    List<Prescription> findByUserIdAndIssuedDateBetween(String userId, LocalDateTime startDate, LocalDateTime endDate);
+    void deleteByUserIdAndId(String userId, String id);
 }

@@ -48,4 +48,15 @@ public class PatientServiceClient {
             return false;
         }
     }
+    
+    public boolean isUserValid(String userId) {
+        String url = patientServiceUrl + "/api/auth/users/" + userId;
+        
+        try {
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            return response.getStatusCode().is2xxSuccessful();
+        } catch (Exception e) {
+            return false;
+        }
+    }
 }

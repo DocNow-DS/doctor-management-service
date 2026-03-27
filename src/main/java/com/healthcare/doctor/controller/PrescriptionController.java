@@ -38,11 +38,11 @@ public class PrescriptionController {
                 .orElse(ResponseEntity.notFound().build());
     }
     
-    @GetMapping("/doctor/{doctorId}")
-    @PreAuthorize("hasRole('DOCTOR') and #doctorId == authentication.principal.id or hasRole('ADMIN')")
-    public ResponseEntity<List<Prescription>> getPrescriptionsByDoctor(@PathVariable String doctorId) {
+    @GetMapping("/user/{userId}")
+    @PreAuthorize("hasRole('DOCTOR') and #userId == authentication.principal.id or hasRole('ADMIN')")
+    public ResponseEntity<List<Prescription>> getPrescriptionsByUser(@PathVariable String userId) {
         try {
-            List<Prescription> prescriptions = prescriptionService.getPrescriptionsByDoctor(doctorId);
+            List<Prescription> prescriptions = prescriptionService.getPrescriptionsByUser(userId);
             return ResponseEntity.ok(prescriptions);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
@@ -56,60 +56,60 @@ public class PrescriptionController {
         return ResponseEntity.ok(prescriptions);
     }
     
-    @GetMapping("/doctor/{doctorId}/patient/{patientId}")
-    @PreAuthorize("hasRole('DOCTOR') and #doctorId == authentication.principal.id or hasRole('ADMIN')")
-    public ResponseEntity<List<Prescription>> getPrescriptionsByDoctorAndPatient(
-            @PathVariable String doctorId, @PathVariable String patientId) {
+    @GetMapping("/user/{userId}/patient/{patientId}")
+    @PreAuthorize("hasRole('DOCTOR') and #userId == authentication.principal.id or hasRole('ADMIN')")
+    public ResponseEntity<List<Prescription>> getPrescriptionsByUserAndPatient(
+            @PathVariable String userId, @PathVariable String patientId) {
         try {
-            List<Prescription> prescriptions = prescriptionService.getPrescriptionsByDoctorAndPatient(doctorId, patientId);
+            List<Prescription> prescriptions = prescriptionService.getPrescriptionsByUserAndPatient(userId, patientId);
             return ResponseEntity.ok(prescriptions);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
     }
     
-    @PutMapping("/{id}/doctor/{doctorId}")
-    @PreAuthorize("hasRole('DOCTOR') and #doctorId == authentication.principal.id")
+    @PutMapping("/{id}/user/{userId}")
+    @PreAuthorize("hasRole('DOCTOR') and #userId == authentication.principal.id")
     public ResponseEntity<Prescription> updatePrescription(
-            @PathVariable String id, @PathVariable String doctorId, @RequestBody Prescription prescriptionDetails) {
+            @PathVariable String id, @PathVariable String userId, @RequestBody Prescription prescriptionDetails) {
         try {
-            Prescription updatedPrescription = prescriptionService.updatePrescription(id, doctorId, prescriptionDetails);
+            Prescription updatedPrescription = prescriptionService.updatePrescription(id, userId, prescriptionDetails);
             return ResponseEntity.ok(updatedPrescription);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }
     }
     
-    @PutMapping("/{id}/deactivate/doctor/{doctorId}")
-    @PreAuthorize("hasRole('DOCTOR') and #doctorId == authentication.principal.id")
-    public ResponseEntity<Void> deactivatePrescription(@PathVariable String id, @PathVariable String doctorId) {
+    @PutMapping("/{id}/deactivate/user/{userId}")
+    @PreAuthorize("hasRole('DOCTOR') and #userId == authentication.principal.id")
+    public ResponseEntity<Void> deactivatePrescription(@PathVariable String id, @PathVariable String userId) {
         try {
-            prescriptionService.deactivatePrescription(id, doctorId);
+            prescriptionService.deactivatePrescription(id, userId);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }
     }
     
-    @DeleteMapping("/{id}/doctor/{doctorId}")
-    @PreAuthorize("hasRole('DOCTOR') and #doctorId == authentication.principal.id")
-    public ResponseEntity<Void> deletePrescription(@PathVariable String id, @PathVariable String doctorId) {
+    @DeleteMapping("/{id}/user/{userId}")
+    @PreAuthorize("hasRole('DOCTOR') and #userId == authentication.principal.id")
+    public ResponseEntity<Void> deletePrescription(@PathVariable String id, @PathVariable String userId) {
         try {
-            prescriptionService.deletePrescription(id, doctorId);
+            prescriptionService.deletePrescription(id, userId);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }
     }
     
-    @GetMapping("/doctor/{doctorId}/date-range")
-    @PreAuthorize("hasRole('DOCTOR') and #doctorId == authentication.principal.id or hasRole('ADMIN')")
+    @GetMapping("/user/{userId}/date-range")
+    @PreAuthorize("hasRole('DOCTOR') and #userId == authentication.principal.id or hasRole('ADMIN')")
     public ResponseEntity<List<Prescription>> getPrescriptionsByDateRange(
-            @PathVariable String doctorId,
+            @PathVariable String userId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
         try {
-            List<Prescription> prescriptions = prescriptionService.getPrescriptionsByDateRange(doctorId, startDate, endDate);
+            List<Prescription> prescriptions = prescriptionService.getPrescriptionsByDateRange(userId, startDate, endDate);
             return ResponseEntity.ok(prescriptions);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
