@@ -2,7 +2,6 @@ package com.healthcare.doctor.service;
 
 import com.healthcare.doctor.model.Prescription;
 import com.healthcare.doctor.repository.PrescriptionRepository;
-import com.healthcare.doctor.repository.DoctorRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,11 +14,11 @@ import java.util.Optional;
 public class PrescriptionService {
     
     private final PrescriptionRepository prescriptionRepository;
-    private final DoctorRepository doctorRepository;
-    // private final PatientServiceClient patientServiceClient;
+    private final PatientServiceClient patientServiceClient;
     
     public Prescription issuePrescription(Prescription prescription) {
-        if (!doctorRepository.existsById(prescription.getDoctorId())) {
+        // Validate user exists in patient service and has DOCTOR role
+        if (!patientServiceClient.isUserValid(prescription.getUserId())) {
             throw new RuntimeException("Doctor not found");
         }
         
@@ -39,15 +38,12 @@ public class PrescriptionService {
         return prescriptionRepository.findById(id);
     }
     
-    public Optional<Prescription> getPrescriptionByIdAndDoctor(String id, String doctorId) {
-        return prescriptionRepository.findByIdAndDoctorId(id, doctorId);
+    public Optional<Prescription> getPrescriptionByIdAndUser(String id, String userId) {
+        return prescriptionRepository.findByIdAndUserId(id, userId);
     }
     
-    public List<Prescription> getPrescriptionsByDoctor(String doctorId) {
-        if (!doctorRepository.existsById(doctorId)) {
-            throw new RuntimeException("Doctor not found");
-        }
-        return prescriptionRepository.findByDoctorId(doctorId);
+    public List<Prescription> getPrescriptionsByUser(String userId) {
+        return prescriptionRepository.findByUserId(userId);
     }
     
     public List<Prescription> getPrescriptionsByPatient(String patientId) {
@@ -58,21 +54,12 @@ public class PrescriptionService {
         return prescriptionRepository.findByPatientId(patientId);
     }
     
-    public List<Prescription> getPrescriptionsByDoctorAndPatient(String doctorId, String patientId) {
-        if (!doctorRepository.existsById(doctorId)) {
-            throw new RuntimeException("Doctor not found");
-        }
-        
-        // Validate patient exists
-        // if (!patientServiceClient.isPatientValid(patientId)) {
-        //     throw new RuntimeException("Patient not found");
-        // }
-        
-        return prescriptionRepository.findByDoctorIdAndPatientId(doctorId, patientId);
+    public List<Prescription> getPrescriptionsByUserAndPatient(String userId, String patientId) {
+        return prescriptionRepository.findByUserIdAndPatientId(userId, patientId);
     }
     
-    public Prescription updatePrescription(String id, String doctorId, Prescription prescriptionDetails) {
-        Prescription prescription = prescriptionRepository.findByIdAndDoctorId(id, doctorId)
+    public Prescription updatePrescription(String id, String userId, Prescription prescriptionDetails) {
+        Prescription prescription = prescriptionRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new RuntimeException("Prescription not found or access denied"));
         
         // Validate patient if patient ID is being updated
@@ -95,25 +82,22 @@ public class PrescriptionService {
         return prescriptionRepository.save(prescription);
     }
     
-    public void deactivatePrescription(String id, String doctorId) {
-        Prescription prescription = prescriptionRepository.findByIdAndDoctorId(id, doctorId)
+    public void deactivatePrescription(String id, String userId) {
+        Prescription prescription = prescriptionRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new RuntimeException("Prescription not found or access denied"));
         
         prescription.setIsActive(false);
         prescriptionRepository.save(prescription);
     }
     
-    public void deletePrescription(String id, String doctorId) {
-        Prescription prescription = prescriptionRepository.findByIdAndDoctorId(id, doctorId)
+    public void deletePrescription(String id, String userId) {
+        Prescription prescription = prescriptionRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new RuntimeException("Prescription not found or access denied"));
         
         prescriptionRepository.deleteById(id);
     }
     
-    public List<Prescription> getPrescriptionsByDateRange(String doctorId, LocalDateTime startDate, LocalDateTime endDate) {
-        if (!doctorRepository.existsById(doctorId)) {
-            throw new RuntimeException("Doctor not found");
-        }
-        return prescriptionRepository.findByDoctorIdAndIssuedDateBetween(doctorId, startDate, endDate);
+    public List<Prescription> getPrescriptionsByDateRange(String userId, LocalDateTime startDate, LocalDateTime endDate) {
+        return prescriptionRepository.findByUserIdAndIssuedDateBetween(userId, startDate, endDate);
     }
 }

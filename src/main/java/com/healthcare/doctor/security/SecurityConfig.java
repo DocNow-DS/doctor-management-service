@@ -41,7 +41,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/doctors").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/doctors/{id}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/doctors/specialization/{specialization}").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/availability/doctor/{doctorId}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/availability/user/{userId}").permitAll()
                         .requestMatchers("/api/internal/**").permitAll()
                         .anyRequest().authenticated())
                 .httpBasic(AbstractHttpConfigurer::disable)
