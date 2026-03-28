@@ -11,5 +11,7 @@ public interface MedicineCatalogRepository extends MongoRepository<MedicineCatal
 
     boolean existsByNameIgnoreCase(String name);
 
+    boolean existsByNameIgnoreCaseAndIdNot(String name, String id);
+
     List<MedicineCatalog> findByActiveTrue();
 }

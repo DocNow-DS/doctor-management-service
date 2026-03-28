@@ -44,4 +44,39 @@ public class MedicineCatalogService {
                 .sorted(Comparator.comparing(m -> String.valueOf(m.getName()).toLowerCase()))
                 .toList();
     }
+
+    public MedicineCatalog updateMedicine(String id, MedicineCatalog updates) {
+        MedicineCatalog existing = medicineCatalogRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Medicine not found"));
+
+        String requestedName = updates.getName();
+        String normalizedName = requestedName == null ? existing.getName() : requestedName.trim();
+        if (normalizedName == null || normalizedName.isBlank()) {
+            throw new RuntimeException("Medicine name is required");
+        }
+
+        if (medicineCatalogRepository.existsByNameIgnoreCaseAndIdNot(normalizedName, id)) {
+            throw new RuntimeException("Another medicine with this name already exists");
+        }
+
+        existing.setName(normalizedName);
+        if (updates.getGenericName() != null) {
+            existing.setGenericName(updates.getGenericName().trim());
+        }
+        if (updates.getForm() != null) {
+            existing.setForm(updates.getForm().trim());
+        }
+        if (updates.getStrength() != null) {
+            existing.setStrength(updates.getStrength().trim());
+        }
+        if (updates.getNotes() != null) {
+            existing.setNotes(updates.getNotes().trim());
+        }
+        if (updates.getActive() != null) {
+            existing.setActive(updates.getActive());
+        }
+        existing.setUpdatedAt(LocalDateTime.now());
+
+        return medicineCatalogRepository.save(existing);
+    }
 }
