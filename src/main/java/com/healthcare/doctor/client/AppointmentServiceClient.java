@@ -14,7 +14,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Client to communicate with Appointment Management Service (port 8083)
+ * Client to communicate with Appointment Management Service (default port 8080)
  */
 @Component
 @RequiredArgsConstructor
@@ -22,7 +22,7 @@ public class AppointmentServiceClient {
 
     private final RestTemplate restTemplate;
 
-    @Value("${appointment.service.url:http://localhost:8083}")
+    @Value("${appointment.service.url:http://localhost:8080}")
     private String appointmentServiceBaseUrl;
 
     /**
@@ -120,12 +120,10 @@ public class AppointmentServiceClient {
                 headers.set("Authorization", authorization);
             }
 
-            ResponseEntity<AppointmentResponse> response = restTemplate.patchForObject(
+            return restTemplate.patchForObject(
                     url,
                     new HttpEntity<>(headers),
                     AppointmentResponse.class);
-
-            return response;
         } catch (Exception e) {
             throw new RuntimeException("Failed to mark appointment as completed: " + e.getMessage());
         }

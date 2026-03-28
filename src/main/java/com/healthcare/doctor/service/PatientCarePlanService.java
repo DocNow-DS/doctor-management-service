@@ -2,7 +2,6 @@ package com.healthcare.doctor.service;
 
 import com.healthcare.doctor.model.PatientCarePlan;
 import com.healthcare.doctor.model.PatientCarePlan.CarePlanStatus;
-import com.healthcare.doctor.repository.DoctorRepository;
 import com.healthcare.doctor.repository.PatientCarePlanRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,7 +21,7 @@ import java.util.Optional;
 public class PatientCarePlanService {
 
     private final PatientCarePlanRepository carePlanRepository;
-    private final DoctorRepository doctorRepository;
+    private final PatientServiceClient patientServiceClient;
 
     // ─────────────────────────────────────────────────────────────────────────
     // CREATE
@@ -37,7 +36,7 @@ public class PatientCarePlanService {
      */
     public PatientCarePlan createCarePlan(PatientCarePlan plan) {
         // Validate doctor exists
-        if (!doctorRepository.existsById(plan.getDoctorId())) {
+        if (!patientServiceClient.isUserValid(plan.getDoctorId())) {
             throw new RuntimeException("Doctor not found with id: " + plan.getDoctorId());
         }
 
@@ -67,7 +66,7 @@ public class PatientCarePlanService {
 
     /** Get all care plans created by a doctor */
     public List<PatientCarePlan> getCarePlansByDoctor(String doctorId) {
-        if (!doctorRepository.existsById(doctorId)) {
+        if (!patientServiceClient.isUserValid(doctorId)) {
             throw new RuntimeException("Doctor not found with id: " + doctorId);
         }
         return carePlanRepository.findByDoctorId(doctorId);
@@ -80,7 +79,7 @@ public class PatientCarePlanService {
 
     /** Get all care plans a specific doctor created for a specific patient */
     public List<PatientCarePlan> getCarePlansByDoctorAndPatient(String doctorId, String patientId) {
-        if (!doctorRepository.existsById(doctorId)) {
+        if (!patientServiceClient.isUserValid(doctorId)) {
             throw new RuntimeException("Doctor not found with id: " + doctorId);
         }
         return carePlanRepository.findByDoctorIdAndPatientId(doctorId, patientId);
@@ -88,7 +87,7 @@ public class PatientCarePlanService {
 
     /** Get only ACTIVE care plans for a doctor (useful for dashboard worklist) */
     public List<PatientCarePlan> getActiveCarePlansByDoctor(String doctorId) {
-        if (!doctorRepository.existsById(doctorId)) {
+        if (!patientServiceClient.isUserValid(doctorId)) {
             throw new RuntimeException("Doctor not found with id: " + doctorId);
         }
         return carePlanRepository.findByDoctorIdAndStatus(doctorId, CarePlanStatus.ACTIVE);
