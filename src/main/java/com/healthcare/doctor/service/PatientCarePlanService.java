@@ -29,15 +29,16 @@ public class PatientCarePlanService {
 
     /**
      * Create a new care plan for a patient.
-     *  - Validates that the doctor exists.
      *  - Sets status to ACTIVE automatically.
      *  - Calculates nextVisitDate from today + nextVisitDays.
      *  - Records createdAt timestamp.
      */
     public PatientCarePlan createCarePlan(PatientCarePlan plan) {
-        // Validate doctor exists
-        if (!patientServiceClient.isUserValid(plan.getDoctorId())) {
-            throw new RuntimeException("Doctor not found with id: " + plan.getDoctorId());
+        if (plan.getDoctorId() == null || plan.getDoctorId().isBlank()) {
+            throw new RuntimeException("Doctor id is required");
+        }
+        if (plan.getPatientId() == null || plan.getPatientId().isBlank()) {
+            throw new RuntimeException("Patient id is required");
         }
 
         // Auto-set status

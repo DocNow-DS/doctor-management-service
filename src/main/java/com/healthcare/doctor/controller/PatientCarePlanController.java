@@ -1,14 +1,17 @@
 package com.healthcare.doctor.controller;
 
+import com.healthcare.doctor.dto.AuthResponse;
 import com.healthcare.doctor.model.PatientCarePlan;
 import com.healthcare.doctor.service.PatientCarePlanService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * REST Controller for Patient Care Plans.
@@ -43,12 +46,29 @@ public class PatientCarePlanController {
      */
     @PostMapping
     @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<PatientCarePlan> createCarePlan(@RequestBody PatientCarePlan plan) {
+    public ResponseEntity<?> createCarePlan(@RequestBody PatientCarePlan plan,
+                                            @AuthenticationPrincipal AuthResponse.User authenticatedUser) {
         try {
+            if (authenticatedUser == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("message", "Authentication required"));
+            }
+
+            String doctorId = authenticatedUser.getId();
+            if (doctorId == null || doctorId.isBlank()) {
+                doctorId = authenticatedUser.getUsername();
+            }
+
+            if (doctorId == null || doctorId.isBlank()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "Unable to resolve authenticated doctor id"));
+            }
+
+            plan.setDoctorId(doctorId);
             PatientCarePlan created = carePlanService.createCarePlan(plan);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 
