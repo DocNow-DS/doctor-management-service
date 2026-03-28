@@ -2,30 +2,34 @@
   "info": {
     "_postman_id": "doctor-management-service",
     "name": "Doctor Management Service API",
-    "description": "Complete API collection for Doctor Management Service — Auth, Doctor Profile, Availability, Prescriptions, and Patient Care Plans. Port: 8082.",
+    "description": "Doctor Management collection aligned with current controller mappings on port 8082.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
       "name": "Authentication",
-      "description": "Authentication for Doctor Management Service. JWT tokens are issued by Patient Management Service (port 8081). Use this redirect endpoint to confirm.",
       "item": [
         {
-          "name": "Login Redirect (Doctor)",
+          "name": "Login Redirect (Doctor Service)",
           "request": {
             "method": "POST",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "login"]
-            },
-            "description": "Doctor Management delegates auth to Patient Management Service. Use http://localhost:8081/api/auth/login to get your JWT token, then paste it into the {{jwtToken}} variable."
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
           },
           "response": []
         },
         {
-          "name": "Login — Patient Management (get JWT here)",
+          "name": "Login via Patient Service",
           "event": [
             {
               "listen": "test",
@@ -33,15 +37,9 @@
                 "type": "text/javascript",
                 "exec": [
                   "if (pm.response.code === 200) {",
-                  "    const response = pm.response.json();",
-                  "    if (response.token) {",
-                  "        pm.collectionVariables.set('jwtToken', response.token);",
-                  "        console.log('JWT token saved to collection variable: jwtToken');",
-                  "    }",
-                  "    if (response.id) {",
-                  "        pm.collectionVariables.set('doctorUserId', response.id);",
-                  "        console.log('Doctor user ID saved:', response.id);",
-                  "    }",
+                  "  const r = pm.response.json();",
+                  "  if (r.token) pm.collectionVariables.set('jwtToken', r.token);",
+                  "  if (r.id) pm.collectionVariables.set('doctorUserId', r.id);",
                   "}"
                 ]
               }
@@ -57,16 +55,21 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"email\": \"doctor@example.com\",\n    \"password\": \"password123\"\n}"
+              "raw": "{\n  \"email\": \"doctor@example.com\",\n  \"password\": \"password123\"\n}"
             },
             "url": {
               "raw": "http://localhost:8081/api/auth/login",
               "protocol": "http",
-              "host": ["localhost"],
+              "host": [
+                "localhost"
+              ],
               "port": "8081",
-              "path": ["api", "auth", "login"]
-            },
-            "description": "Login via Patient Management Service. The test script auto-saves the JWT token to {{jwtToken}} collection variable."
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
           },
           "response": []
         }
@@ -74,35 +77,7 @@
     },
     {
       "name": "Doctor Profile",
-      "description": "Doctor profile management — register, view, update, admin operations.",
       "item": [
-        {
-          "name": "Register Doctor Profile",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwtToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"firstName\": \"John\",\n    \"lastName\": \"Smith\",\n    \"email\": \"doctor@example.com\",\n    \"phoneNumber\": \"+94771234567\",\n    \"specialization\": \"Cardiology\",\n    \"licenseNumber\": \"LIC-2024-001\",\n    \"hospitalName\": \"City General Hospital\",\n    \"yearsOfExperience\": 10,\n    \"education\": \"MBBS, MD - Cardiology, University of Colombo\",\n    \"about\": \"Experienced cardiologist specializing in heart disease management.\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/doctors/register",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "doctors", "register"]
-            },
-            "description": "Create a new doctor profile after authentication. Links profile to the authenticated user via JWT."
-          },
-          "response": []
-        },
         {
           "name": "Get My Profile",
           "request": {
@@ -115,10 +90,15 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/doctors/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "doctors", "me"]
-            },
-            "description": "Get the currently authenticated doctor's profile."
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "doctors",
+                "me"
+              ]
+            }
           },
           "response": []
         },
@@ -138,159 +118,76 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"phoneNumber\": \"+94779876543\",\n    \"hospitalName\": \"Central Medical Center\",\n    \"about\": \"Updated bio — now specializing in advanced cardiac interventions.\",\n    \"yearsOfExperience\": 12\n}"
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Smith\",\n  \"phoneNumber\": \"+94770000000\",\n  \"specialty\": \"Cardiology\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/doctors/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "doctors", "me"]
-            },
-            "description": "Update the authenticated doctor's own profile fields."
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "doctors",
+                "me"
+              ]
+            }
           },
           "response": []
         },
         {
-          "name": "Get All Doctors (Public)",
+          "name": "Get Doctor By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/doctors/{{doctorUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "doctors",
+                "{{doctorUserId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Doctors",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/doctors",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "doctors"]
-            },
-            "description": "Public endpoint — list all registered doctors."
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "doctors"
+              ]
+            }
           },
           "response": []
         },
         {
-          "name": "Get Doctor by ID (Public)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/doctors/{{doctorId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "doctors", "{{doctorId}}"]
-            },
-            "description": "Public endpoint — get a single doctor profile by MongoDB ID."
-          },
-          "response": []
-        },
-        {
-          "name": "Get Doctors by Specialization (Public)",
+          "name": "Get Doctors By Specialization",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/doctors/specialization/Cardiology",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "doctors", "specialization", "Cardiology"]
-            },
-            "description": "Public endpoint — filter doctors by their specialization field."
-          },
-          "response": []
-        },
-        {
-          "name": "Get Doctor by Email",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwtToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/doctors/email/doctor@example.com",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "doctors", "email", "doctor@example.com"]
-            },
-            "description": "Get a doctor profile by email address. Requires DOCTOR or ADMIN role."
-          },
-          "response": []
-        },
-        {
-          "name": "Verify Doctor (Admin)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{adminJwtToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/doctors/{{doctorId}}/verify",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "doctors", "{{doctorId}}", "verify"]
-            },
-            "description": "Admin only — mark a doctor as verified (isVerified = true)."
-          },
-          "response": []
-        },
-        {
-          "name": "Toggle Doctor Status (Admin)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{adminJwtToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/doctors/{{doctorId}}/toggle-status",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "doctors", "{{doctorId}}", "toggle-status"]
-            },
-            "description": "Admin only — toggle a doctor's active/inactive status."
-          },
-          "response": []
-        },
-        {
-          "name": "Update Doctor (Admin)",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{adminJwtToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"specialization\": \"Neurology\",\n    \"isActive\": true,\n    \"isVerified\": true\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/doctors/{{doctorId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "doctors", "{{doctorId}}"]
-            },
-            "description": "Admin only — update any field of any doctor profile by ID."
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Doctor (Admin)",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{adminJwtToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/doctors/{{doctorId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "doctors", "{{doctorId}}"]
-            },
-            "description": "Admin only — permanently delete a doctor profile."
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "doctors",
+                "specialization",
+                "Cardiology"
+              ]
+            }
           },
           "response": []
         }
@@ -298,10 +195,9 @@
     },
     {
       "name": "Availability",
-      "description": "Manage a doctor's available time slots. Patients and other services use GET to check when a doctor is free.",
       "item": [
         {
-          "name": "Set Availability Slot",
+          "name": "Set Availability",
           "request": {
             "method": "POST",
             "header": [
@@ -316,33 +212,45 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"dayOfWeek\": \"MONDAY\",\n    \"startTime\": \"09:00\",\n    \"endTime\": \"12:00\",\n    \"slotDurationMinutes\": 30,\n    \"isAvailable\": true\n}"
+              "raw": "{\n  \"dayOfWeek\": \"MONDAY\",\n  \"startTime\": \"09:00\",\n  \"endTime\": \"12:00\",\n  \"isAvailable\": true\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/availability/doctor/{{doctorId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "availability", "doctor", "{{doctorId}}"]
-            },
-            "description": "Doctor sets their available time slot for a day. Only the owning doctor can do this."
+              "raw": "{{baseUrl}}/api/availability/user/{{doctorUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "availability",
+                "user",
+                "{{doctorUserId}}"
+              ]
+            }
           },
           "response": []
         },
         {
-          "name": "Get Doctor Availability (Public)",
+          "name": "Get User Availability",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/availability/doctor/{{doctorId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "availability", "doctor", "{{doctorId}}"]
-            },
-            "description": "Public endpoint — fetch all availability slots for a particular doctor."
+              "raw": "{{baseUrl}}/api/availability/user/{{doctorUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "availability",
+                "user",
+                "{{doctorUserId}}"
+              ]
+            }
           },
           "response": []
         },
         {
-          "name": "Remove Availability Slot",
+          "name": "Delete Availability",
           "request": {
             "method": "DELETE",
             "header": [
@@ -352,11 +260,18 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/availability/doctor/{{doctorId}}/{{availabilityId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "availability", "doctor", "{{doctorId}}", "{{availabilityId}}"]
-            },
-            "description": "Remove a specific availability slot. Only the owning doctor can do this."
+              "raw": "{{baseUrl}}/api/availability/user/{{doctorUserId}}/{{availabilityId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "availability",
+                "user",
+                "{{doctorUserId}}",
+                "{{availabilityId}}"
+              ]
+            }
           },
           "response": []
         }
@@ -364,7 +279,6 @@
     },
     {
       "name": "Prescriptions",
-      "description": "Doctor issues and manages prescriptions for patients.",
       "item": [
         {
           "name": "Issue Prescription",
@@ -382,19 +296,23 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"doctorId\": \"{{doctorId}}\",\n    \"patientId\": \"{{patientId}}\",\n    \"appointmentId\": \"{{appointmentId}}\",\n    \"diagnosis\": \"Upper Respiratory Tract Infection\",\n    \"medications\": \"Amoxicillin 500mg\",\n    \"dosage\": \"1 tablet\",\n    \"instructions\": \"Take twice daily after meals\",\n    \"durationDays\": 7,\n    \"notes\": \"Avoid alcohol. Return if symptoms worsen.\"\n}"
+              "raw": "{\n  \"userId\": \"{{doctorUserId}}\",\n  \"patientId\": \"{{patientId}}\",\n  \"appointmentId\": \"{{appointmentId}}\",\n  \"diagnosis\": \"Flu\",\n  \"medications\": \"Paracetamol\",\n  \"dosage\": \"500mg\",\n  \"instructions\": \"After meals\",\n  \"durationDays\": 5\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/prescriptions",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "prescriptions"]
-            },
-            "description": "Doctor issues a new prescription for a patient. issuedDate and expiryDate are auto-calculated."
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prescriptions"
+              ]
+            }
           },
           "response": []
         },
         {
-          "name": "Get Prescription by ID",
+          "name": "Get Prescription By ID",
           "request": {
             "method": "GET",
             "header": [
@@ -405,15 +323,20 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/prescriptions/{{prescriptionId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "prescriptions", "{{prescriptionId}}"]
-            },
-            "description": "Fetch a single prescription by its MongoDB ID."
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prescriptions",
+                "{{prescriptionId}}"
+              ]
+            }
           },
           "response": []
         },
         {
-          "name": "Get Prescriptions by Doctor",
+          "name": "Get Prescriptions By User",
           "request": {
             "method": "GET",
             "header": [
@@ -423,16 +346,22 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/prescriptions/doctor/{{doctorId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "prescriptions", "doctor", "{{doctorId}}"]
-            },
-            "description": "Get all prescriptions issued by a specific doctor."
+              "raw": "{{baseUrl}}/api/prescriptions/user/{{doctorUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prescriptions",
+                "user",
+                "{{doctorUserId}}"
+              ]
+            }
           },
           "response": []
         },
         {
-          "name": "Get Prescriptions by Patient",
+          "name": "Get Prescriptions By Patient",
           "request": {
             "method": "GET",
             "header": [
@@ -443,15 +372,21 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/prescriptions/patient/{{patientId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "prescriptions", "patient", "{{patientId}}"]
-            },
-            "description": "Get all prescriptions for a specific patient (across all doctors)."
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prescriptions",
+                "patient",
+                "{{patientId}}"
+              ]
+            }
           },
           "response": []
         },
         {
-          "name": "Get Prescriptions by Doctor and Patient",
+          "name": "Get Prescriptions By User And Patient",
           "request": {
             "method": "GET",
             "header": [
@@ -461,11 +396,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/prescriptions/doctor/{{doctorId}}/patient/{{patientId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "prescriptions", "doctor", "{{doctorId}}", "patient", "{{patientId}}"]
-            },
-            "description": "Get all prescriptions this doctor issued for a specific patient."
+              "raw": "{{baseUrl}}/api/prescriptions/user/{{doctorUserId}}/patient/{{patientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prescriptions",
+                "user",
+                "{{doctorUserId}}",
+                "patient",
+                "{{patientId}}"
+              ]
+            }
           },
           "response": []
         },
@@ -485,14 +428,21 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"diagnosis\": \"Updated diagnosis\",\n    \"medications\": \"Paracetamol 500mg\",\n    \"dosage\": \"1 tablet\",\n    \"instructions\": \"Take every 8 hours\",\n    \"durationDays\": 5,\n    \"notes\": \"Updated notes\"\n}"
+              "raw": "{\n  \"diagnosis\": \"Updated diagnosis\",\n  \"medications\": \"Updated medication\",\n  \"dosage\": \"1 tablet\",\n  \"instructions\": \"Twice daily\",\n  \"durationDays\": 7\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/prescriptions/{{prescriptionId}}/doctor/{{doctorId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "prescriptions", "{{prescriptionId}}", "doctor", "{{doctorId}}"]
-            },
-            "description": "Update an existing prescription. Only the issuing doctor can update it."
+              "raw": "{{baseUrl}}/api/prescriptions/{{prescriptionId}}/user/{{doctorUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prescriptions",
+                "{{prescriptionId}}",
+                "user",
+                "{{doctorUserId}}"
+              ]
+            }
           },
           "response": []
         },
@@ -507,40 +457,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/prescriptions/{{prescriptionId}}/deactivate/doctor/{{doctorId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "prescriptions", "{{prescriptionId}}", "deactivate", "doctor", "{{doctorId}}"]
-            },
-            "description": "Mark a prescription as inactive (isActive = false) without deleting it."
-          },
-          "response": []
-        },
-        {
-          "name": "Get Prescriptions by Date Range",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwtToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/prescriptions/doctor/{{doctorId}}/date-range?startDate=2026-01-01T00:00:00&endDate=2026-12-31T23:59:59",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "prescriptions", "doctor", "{{doctorId}}", "date-range"],
-              "query": [
-                {
-                  "key": "startDate",
-                  "value": "2026-01-01T00:00:00"
-                },
-                {
-                  "key": "endDate",
-                  "value": "2026-12-31T23:59:59"
-                }
+              "raw": "{{baseUrl}}/api/prescriptions/{{prescriptionId}}/deactivate/user/{{doctorUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prescriptions",
+                "{{prescriptionId}}",
+                "deactivate",
+                "user",
+                "{{doctorUserId}}"
               ]
-            },
-            "description": "Get prescriptions issued by this doctor within a specific date range."
+            }
           },
           "response": []
         },
@@ -555,11 +484,54 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/prescriptions/{{prescriptionId}}/doctor/{{doctorId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "prescriptions", "{{prescriptionId}}", "doctor", "{{doctorId}}"]
-            },
-            "description": "Permanently delete a prescription. Only the issuing doctor can delete it."
+              "raw": "{{baseUrl}}/api/prescriptions/{{prescriptionId}}/user/{{doctorUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prescriptions",
+                "{{prescriptionId}}",
+                "user",
+                "{{doctorUserId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Prescriptions By Date Range",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/prescriptions/user/{{doctorUserId}}/date-range?startDate=2026-01-01T00:00:00&endDate=2026-12-31T23:59:59",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "prescriptions",
+                "user",
+                "{{doctorUserId}}",
+                "date-range"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-01-01T00:00:00"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-12-31T23:59:59"
+                }
+              ]
+            }
           },
           "response": []
         }
@@ -567,27 +539,9 @@
     },
     {
       "name": "Patient Care Plans",
-      "description": "After each consultation, the doctor creates a structured care plan for the patient — including medicines (dosage, frequency, duration), allergies, consultation notes, pre-visit lab services, and next visit schedule.",
       "item": [
         {
           "name": "Create Care Plan",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "    const response = pm.response.json();",
-                  "    if (response.id) {",
-                  "        pm.collectionVariables.set('carePlanId', response.id);",
-                  "        console.log('Care Plan ID saved:', response.id);",
-                  "    }",
-                  "}"
-                ]
-              }
-            }
-          ],
           "request": {
             "method": "POST",
             "header": [
@@ -602,19 +556,23 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"doctorId\": \"{{doctorId}}\",\n    \"patientId\": \"{{patientId}}\",\n    \"appointmentId\": \"{{appointmentId}}\",\n    \"medicines\": [\n        {\n            \"medicineName\": \"Amoxicillin\",\n            \"dosage\": \"500mg\",\n            \"frequency\": \"Twice daily\",\n            \"durationDays\": 7,\n            \"instructions\": \"After meals\"\n        },\n        {\n            \"medicineName\": \"Paracetamol\",\n            \"dosage\": \"500mg\",\n            \"frequency\": \"Every 8 hours if fever\",\n            \"durationDays\": 5,\n            \"instructions\": \"Take with water\"\n        }\n    ],\n    \"allergies\": [\"Penicillin\", \"Aspirin\"],\n    \"consultationNotes\": \"Patient presents with mild fever and sore throat. Diagnosed with URTI. Prescribed antibiotics for 7 days. Review if no improvement.\",\n    \"preVisitServices\": [\n        {\n            \"serviceName\": \"Full Blood Count\",\n            \"notes\": \"Fasting not required\"\n        },\n        {\n            \"serviceName\": \"Urine Analysis\",\n            \"notes\": \"Bring sample in the morning\"\n        }\n    ],\n    \"nextVisitDays\": 7\n}"
+              "raw": "{\n  \"doctorId\": \"{{doctorUserId}}\",\n  \"patientId\": \"{{patientId}}\",\n  \"appointmentId\": \"{{appointmentId}}\",\n  \"medicines\": [],\n  \"allergies\": [],\n  \"consultationNotes\": \"Initial notes\",\n  \"preVisitServices\": [],\n  \"nextVisitDays\": 7\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/care-plans",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "care-plans"]
-            },
-            "description": "Create a new patient care plan after a consultation. Status is automatically set to ACTIVE. nextVisitDate is auto-calculated as today + nextVisitDays. The test script saves the returned ID to {{carePlanId}}."
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "care-plans"
+              ]
+            }
           },
           "response": []
         },
         {
-          "name": "Get Care Plan by ID",
+          "name": "Get Care Plan By ID",
           "request": {
             "method": "GET",
             "header": [
@@ -625,15 +583,20 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/care-plans/{{carePlanId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "care-plans", "{{carePlanId}}"]
-            },
-            "description": "Fetch a single care plan by its MongoDB ID."
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "care-plans",
+                "{{carePlanId}}"
+              ]
+            }
           },
           "response": []
         },
         {
-          "name": "Get All Care Plans by Doctor",
+          "name": "Get Care Plans By Doctor",
           "request": {
             "method": "GET",
             "header": [
@@ -643,16 +606,22 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/care-plans/doctor/{{doctorId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "care-plans", "doctor", "{{doctorId}}"]
-            },
-            "description": "Get all care plans created by this doctor (all statuses: ACTIVE, COMPLETED, CANCELLED)."
+              "raw": "{{baseUrl}}/api/care-plans/doctor/{{doctorUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "care-plans",
+                "doctor",
+                "{{doctorUserId}}"
+              ]
+            }
           },
           "response": []
         },
         {
-          "name": "Get All Care Plans for a Patient",
+          "name": "Get Care Plans By Patient",
           "request": {
             "method": "GET",
             "header": [
@@ -663,15 +632,21 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/care-plans/patient/{{patientId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "care-plans", "patient", "{{patientId}}"]
-            },
-            "description": "Get all care plans for a specific patient, across all doctors."
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "care-plans",
+                "patient",
+                "{{patientId}}"
+              ]
+            }
           },
           "response": []
         },
         {
-          "name": "Get Care Plans — This Doctor for This Patient",
+          "name": "Get Care Plans By Doctor And Patient",
           "request": {
             "method": "GET",
             "header": [
@@ -681,16 +656,24 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/care-plans/doctor/{{doctorId}}/patient/{{patientId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "care-plans", "doctor", "{{doctorId}}", "patient", "{{patientId}}"]
-            },
-            "description": "Most useful for the consultation screen — shows full history of this doctor's care plans for one specific patient."
+              "raw": "{{baseUrl}}/api/care-plans/doctor/{{doctorUserId}}/patient/{{patientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "care-plans",
+                "doctor",
+                "{{doctorUserId}}",
+                "patient",
+                "{{patientId}}"
+              ]
+            }
           },
           "response": []
         },
         {
-          "name": "Get ACTIVE Care Plans by Doctor (Worklist)",
+          "name": "Get Active Care Plans By Doctor",
           "request": {
             "method": "GET",
             "header": [
@@ -700,16 +683,23 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/care-plans/doctor/{{doctorId}}/active",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "care-plans", "doctor", "{{doctorId}}", "active"]
-            },
-            "description": "Get only ACTIVE care plans for this doctor — ideal for the doctor dashboard worklist showing patients currently under care."
+              "raw": "{{baseUrl}}/api/care-plans/doctor/{{doctorUserId}}/active",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "care-plans",
+                "doctor",
+                "{{doctorUserId}}",
+                "active"
+              ]
+            }
           },
           "response": []
         },
         {
-          "name": "Get ACTIVE Care Plans for a Patient",
+          "name": "Get Active Care Plans By Patient",
           "request": {
             "method": "GET",
             "header": [
@@ -720,10 +710,17 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/api/care-plans/patient/{{patientId}}/active",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "care-plans", "patient", "{{patientId}}", "active"]
-            },
-            "description": "Get only ACTIVE care plans for a specific patient — shows what's currently in effect."
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "care-plans",
+                "patient",
+                "{{patientId}}",
+                "active"
+              ]
+            }
           },
           "response": []
         },
@@ -743,19 +740,26 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"medicines\": [\n        {\n            \"medicineName\": \"Amoxicillin\",\n            \"dosage\": \"500mg\",\n            \"frequency\": \"Three times daily\",\n            \"durationDays\": 10,\n            \"instructions\": \"After meals\"\n        }\n    ],\n    \"allergies\": [\"Penicillin\"],\n    \"consultationNotes\": \"Updated: patient responded well, extending antibiotics to 10 days.\",\n    \"preVisitServices\": [\n        {\n            \"serviceName\": \"Full Blood Count\",\n            \"notes\": \"Fasting required this time\"\n        }\n    ],\n    \"nextVisitDays\": 10\n}"
+              "raw": "{\n  \"consultationNotes\": \"Updated notes\",\n  \"nextVisitDays\": 10\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/care-plans/{{carePlanId}}/doctor/{{doctorId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "care-plans", "{{carePlanId}}", "doctor", "{{doctorId}}"]
-            },
-            "description": "Update an existing care plan. Only null fields are ignored — send only what you want to change. nextVisitDate is recalculated automatically if nextVisitDays changes."
+              "raw": "{{baseUrl}}/api/care-plans/{{carePlanId}}/doctor/{{doctorUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "care-plans",
+                "{{carePlanId}}",
+                "doctor",
+                "{{doctorUserId}}"
+              ]
+            }
           },
           "response": []
         },
         {
-          "name": "Mark Care Plan as COMPLETED",
+          "name": "Complete Care Plan",
           "request": {
             "method": "PUT",
             "header": [
@@ -765,16 +769,24 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/care-plans/{{carePlanId}}/doctor/{{doctorId}}/complete",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "care-plans", "{{carePlanId}}", "doctor", "{{doctorId}}", "complete"]
-            },
-            "description": "Mark this care plan as COMPLETED — use when the patient has finished treatment and no further follow-up is needed under this plan."
+              "raw": "{{baseUrl}}/api/care-plans/{{carePlanId}}/doctor/{{doctorUserId}}/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "care-plans",
+                "{{carePlanId}}",
+                "doctor",
+                "{{doctorUserId}}",
+                "complete"
+              ]
+            }
           },
           "response": []
         },
         {
-          "name": "Mark Care Plan as CANCELLED",
+          "name": "Cancel Care Plan",
           "request": {
             "method": "PUT",
             "header": [
@@ -784,11 +796,19 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/care-plans/{{carePlanId}}/doctor/{{doctorId}}/cancel",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "care-plans", "{{carePlanId}}", "doctor", "{{doctorId}}", "cancel"]
-            },
-            "description": "Mark this care plan as CANCELLED — use when the plan is no longer applicable (e.g. patient changed doctors, incorrect prescription)."
+              "raw": "{{baseUrl}}/api/care-plans/{{carePlanId}}/doctor/{{doctorUserId}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "care-plans",
+                "{{carePlanId}}",
+                "doctor",
+                "{{doctorUserId}}",
+                "cancel"
+              ]
+            }
           },
           "response": []
         },
@@ -803,11 +823,306 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/care-plans/{{carePlanId}}/doctor/{{doctorId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "care-plans", "{{carePlanId}}", "doctor", "{{doctorId}}"]
+              "raw": "{{baseUrl}}/api/care-plans/{{carePlanId}}/doctor/{{doctorUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "care-plans",
+                "{{carePlanId}}",
+                "doctor",
+                "{{doctorUserId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Appointments",
+      "item": [
+        {
+          "name": "Get Pending Appointments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/pending",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "appointments",
+                "pending"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Accepted Appointments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/accepted",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "appointments",
+                "accepted"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Appointments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments?status=PENDING",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "appointments"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Appointment By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "appointments",
+                "{{appointmentId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Accept Appointment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Accepted\"\n}"
             },
-            "description": "Permanently delete a care plan. Only the doctor who created it can delete it. Consider using CANCEL instead to preserve history."
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "appointments",
+                "{{appointmentId}}",
+                "accept"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Decline Appointment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Doctor unavailable\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/decline",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "appointments",
+                "{{appointmentId}}",
+                "decline"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Doctor Action",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"REQUEST_RESCHEDULE\",\n  \"message\": \"Need another slot\",\n  \"proposedStartTime\": \"2026-04-01T10:00:00\",\n  \"proposedEndTime\": \"2026-04-01T10:30:00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/action",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "appointments",
+                "{{appointmentId}}",
+                "action"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Request Reschedule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Please reschedule\",\n  \"proposedStartTime\": \"2026-04-01T10:00:00\",\n  \"proposedEndTime\": \"2026-04-01T10:30:00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/reschedule",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "appointments",
+                "{{appointmentId}}",
+                "reschedule"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Complete Appointment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwtToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/appointments/{{appointmentId}}/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "appointments",
+                "{{appointmentId}}",
+                "complete"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Internal",
+      "item": [
+        {
+          "name": "Validate Patient",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/internal/validate-patient/{{patientId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "internal",
+                "validate-patient",
+                "{{patientId}}"
+              ]
+            }
           },
           "response": []
         }
@@ -818,56 +1133,42 @@
     {
       "key": "baseUrl",
       "value": "http://localhost:8082",
-      "type": "string",
-      "description": "Doctor Management Service base URL"
+      "type": "string"
     },
     {
       "key": "jwtToken",
       "value": "",
-      "type": "string",
-      "description": "JWT token — obtained from Patient Management Service login (port 8081). Auto-filled by the login request test script."
+      "type": "string"
     },
     {
-      "key": "adminJwtToken",
-      "value": "",
-      "type": "string",
-      "description": "JWT token for admin operations"
-    },
-    {
-      "key": "doctorId",
-      "value": "paste-doctor-profile-id-here",
-      "type": "string",
-      "description": "MongoDB ID of the doctor's profile document (from /api/doctors/me)"
+      "key": "doctorUserId",
+      "value": "paste-doctor-user-id-here",
+      "type": "string"
     },
     {
       "key": "patientId",
       "value": "paste-patient-id-here",
-      "type": "string",
-      "description": "MongoDB ID of the patient (from Patient Management Service)"
+      "type": "string"
     },
     {
       "key": "appointmentId",
       "value": "paste-appointment-id-here",
-      "type": "string",
-      "description": "MongoDB ID of the appointment (from Appointment Management Service)"
+      "type": "string"
     },
     {
       "key": "prescriptionId",
       "value": "paste-prescription-id-here",
-      "type": "string",
-      "description": "MongoDB ID of an issued prescription"
+      "type": "string"
     },
     {
       "key": "carePlanId",
       "value": "paste-care-plan-id-here",
-      "type": "string",
-      "description": "MongoDB ID of a care plan. Auto-filled when you use 'Create Care Plan'."
+      "type": "string"
     },
     {
       "key": "availabilityId",
       "value": "paste-availability-id-here",
-      "type": "string",
-      "description": "MongoDB ID of an availability slot"
+      "type": "string"
     }
   ]
 }
