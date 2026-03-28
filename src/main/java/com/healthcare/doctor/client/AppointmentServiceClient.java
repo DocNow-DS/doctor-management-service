@@ -119,8 +119,20 @@ public class AppointmentServiceClient {
                     AppointmentResponse.class);
 
             return response.getBody();
+        } catch (HttpClientErrorException.NotFound e) {
+            log.error("Appointment not found: {} - Response: {}", appointmentId, e.getResponseBodyAsString());
+            throw new RuntimeException("Appointment not found: " + appointmentId, e);
+        } catch (HttpClientErrorException.Unauthorized e) {
+            log.error("Unauthorized from appointment service: {} - Response: {}",
+                    e.getMessage(), e.getResponseBodyAsString());
+            throw new RuntimeException("Unauthorized: " + e.getResponseBodyAsString(), e);
+        } catch (HttpClientErrorException e) {
+            log.error("Client error from appointment service: {} {} - Response: {}",
+                    e.getStatusCode(), e.getMessage(), e.getResponseBodyAsString());
+            throw new RuntimeException("Appointment service error: " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to perform doctor action: " + e.getMessage());
+            log.error("Failed to perform doctor action: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to perform doctor action: " + e.getMessage(), e);
         }
     }
 
