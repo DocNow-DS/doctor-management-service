@@ -3,11 +3,14 @@ package com.healthcare.doctor.client;
 import com.healthcare.doctor.dto.AppointmentResponse;
 import com.healthcare.doctor.dto.DoctorActionRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Arrays;
@@ -18,6 +21,7 @@ import java.util.List;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class AppointmentServiceClient {
 
     private final RestTemplate restTemplate;
@@ -41,13 +45,26 @@ public class AppointmentServiceClient {
                 headers.set("Authorization", authorization);
             }
 
-            ResponseEntity<AppointmentResponse[]> response = restTemplate.getForEntity(
+            log.debug("Calling appointment service: GET {}", url);
+            log.debug("Headers - X-Doctor-Id: {}, Authorization: {}", doctorId,
+                    authorization != null ? "Bearer <token>" : "null");
+
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            ResponseEntity<AppointmentResponse[]> response = restTemplate.exchange(
                     url,
+                    HttpMethod.GET,
+                    entity,
                     AppointmentResponse[].class);
 
+            log.debug("Appointment service response: {}", response.getStatusCode());
             return response.getBody() != null ? Arrays.asList(response.getBody()) : List.of();
+        } catch (HttpClientErrorException.Unauthorized e) {
+            log.error("401 Unauthorized from appointment service: {} - Response body: {}",
+                    e.getMessage(), e.getResponseBodyAsString());
+            throw new RuntimeException("Appointment service returned 401: " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to get appointments from appointment service: " + e.getMessage());
+            log.error("Failed to get appointments from appointment service: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to get appointments from appointment service: " + e.getMessage(), e);
         }
     }
 
@@ -64,8 +81,11 @@ public class AppointmentServiceClient {
                 headers.set("Authorization", authorization);
             }
 
-            ResponseEntity<AppointmentResponse> response = restTemplate.getForEntity(
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            ResponseEntity<AppointmentResponse> response = restTemplate.exchange(
                     url,
+                    HttpMethod.GET,
+                    entity,
                     AppointmentResponse.class);
 
             return response.getBody();
@@ -99,8 +119,20 @@ public class AppointmentServiceClient {
                     AppointmentResponse.class);
 
             return response.getBody();
+        } catch (HttpClientErrorException.NotFound e) {
+            log.error("Appointment not found: {} - Response: {}", appointmentId, e.getResponseBodyAsString());
+            throw new RuntimeException("Appointment not found: " + appointmentId, e);
+        } catch (HttpClientErrorException.Unauthorized e) {
+            log.error("Unauthorized from appointment service: {} - Response: {}",
+                    e.getMessage(), e.getResponseBodyAsString());
+            throw new RuntimeException("Unauthorized: " + e.getResponseBodyAsString(), e);
+        } catch (HttpClientErrorException e) {
+            log.error("Client error from appointment service: {} {} - Response: {}",
+                    e.getStatusCode(), e.getMessage(), e.getResponseBodyAsString());
+            throw new RuntimeException("Appointment service error: " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to perform doctor action: " + e.getMessage());
+            log.error("Failed to perform doctor action: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to perform doctor action: " + e.getMessage(), e);
         }
     }
 
@@ -120,10 +152,14 @@ public class AppointmentServiceClient {
                 headers.set("Authorization", authorization);
             }
 
-            return restTemplate.patchForObject(
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            ResponseEntity<AppointmentResponse> response = restTemplate.exchange(
                     url,
-                    new HttpEntity<>(headers),
+                    HttpMethod.PATCH,
+                    entity,
                     AppointmentResponse.class);
+
+            return response.getBody();
         } catch (Exception e) {
             throw new RuntimeException("Failed to mark appointment as completed: " + e.getMessage());
         }

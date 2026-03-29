@@ -1,14 +1,15 @@
 package com.healthcare.doctor.controller;
 
 import com.healthcare.doctor.dto.AppointmentResponse;
+import com.healthcare.doctor.dto.AuthResponse;
 import com.healthcare.doctor.dto.DoctorActionRequest;
 import com.healthcare.doctor.service.AppointmentService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -25,6 +26,7 @@ import java.util.Map;
 @RequestMapping("/api/appointments")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
+@Slf4j
 public class AppointmentController {
 
     private final AppointmentService appointmentService;
@@ -36,13 +38,13 @@ public class AppointmentController {
     @GetMapping("/pending")
     @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<List<AppointmentResponse>> getPendingAppointments(
-            @AuthenticationPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal AuthResponse.User user,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
         try {
-            if (userDetails == null) {
+            if (user == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
-            String doctorId = userDetails.getUsername(); // Username is actually the userId
+            String doctorId = user.getId();
             List<AppointmentResponse> appointments = appointmentService.getPendingAppointments(doctorId, authorization);
             return ResponseEntity.ok(appointments);
         } catch (Exception e) {
@@ -57,13 +59,13 @@ public class AppointmentController {
     @GetMapping("/accepted")
     @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<List<AppointmentResponse>> getAcceptedAppointments(
-            @AuthenticationPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal AuthResponse.User user,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
         try {
-            if (userDetails == null) {
+            if (user == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
-            String doctorId = userDetails.getUsername();
+            String doctorId = user.getId();
             List<AppointmentResponse> appointments = appointmentService.getAcceptedAppointments(doctorId, authorization);
             return ResponseEntity.ok(appointments);
         } catch (Exception e) {
@@ -78,14 +80,14 @@ public class AppointmentController {
     @GetMapping
     @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<List<AppointmentResponse>> getAllAppointments(
-            @AuthenticationPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal AuthResponse.User user,
             @RequestParam(required = false) String status,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
         try {
-            if (userDetails == null) {
+            if (user == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
-            String doctorId = userDetails.getUsername();
+            String doctorId = user.getId();
             List<AppointmentResponse> appointments = appointmentService.getAppointmentsForDoctor(doctorId, status, authorization);
             return ResponseEntity.ok(appointments);
         } catch (Exception e) {
@@ -101,13 +103,13 @@ public class AppointmentController {
     @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<AppointmentResponse> getAppointmentDetails(
             @PathVariable String appointmentId,
-            @AuthenticationPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal AuthResponse.User user,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
         try {
-            if (userDetails == null) {
+            if (user == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
-            String doctorId = userDetails.getUsername();
+            String doctorId = user.getId();
             AppointmentResponse appointment = appointmentService.getAppointment(doctorId, appointmentId, authorization);
             return ResponseEntity.ok(appointment);
         } catch (Exception e) {
@@ -124,18 +126,37 @@ public class AppointmentController {
     public ResponseEntity<AppointmentResponse> acceptAppointment(
             @PathVariable String appointmentId,
             @RequestBody(required = false) Map<String, String> body,
-            @AuthenticationPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal AuthResponse.User user,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
+        log.debug("Accept appointment called - appointmentId: {}, user: {}, authorization present: {}", 
+                appointmentId, user, authorization != null);
+        
         try {
-            if (userDetails == null) {
+            if (user == null) {
+                log.warn("Accept appointment failed: user is null (authentication failed)");
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
-            String doctorId = userDetails.getUsername();
+            
+            log.debug("User authenticated: id={}, username={}, roles: {}", 
+                    user.getId(), user.getUsername(), user.getRoles());
+            
+            String doctorId = user.getId();
             String message = body != null ? body.get("message") : null;
+            
+            log.debug("Calling appointmentService.acceptAppointment for doctorId: {}", doctorId);
             AppointmentResponse result = appointmentService.acceptAppointment(doctorId, appointmentId, message, authorization);
+            
+            log.debug("Appointment accepted successfully");
             return ResponseEntity.ok(result);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
+            log.error("Error accepting appointment: {}", e.getMessage(), e);
+            if (e.getMessage() != null && e.getMessage().contains("401")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+            }
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        } catch (Exception e) {
+            log.error("Unexpected error accepting appointment: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 
@@ -148,13 +169,13 @@ public class AppointmentController {
     public ResponseEntity<AppointmentResponse> declineAppointment(
             @PathVariable String appointmentId,
             @RequestBody(required = false) Map<String, String> body,
-            @AuthenticationPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal AuthResponse.User user,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
         try {
-            if (userDetails == null) {
+            if (user == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
-            String doctorId = userDetails.getUsername();
+            String doctorId = user.getId();
             String reason = body != null ? body.get("reason") : null;
             AppointmentResponse result = appointmentService.declineAppointment(doctorId, appointmentId, reason, authorization);
             return ResponseEntity.ok(result);
@@ -180,13 +201,13 @@ public class AppointmentController {
     public ResponseEntity<AppointmentResponse> performAction(
             @PathVariable String appointmentId,
             @RequestBody DoctorActionRequest request,
-            @AuthenticationPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal AuthResponse.User user,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
         try {
-            if (userDetails == null) {
+            if (user == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
-            String doctorId = userDetails.getUsername();
+            String doctorId = user.getId();
             AppointmentResponse result = appointmentServiceClient.performDoctorAction(doctorId, appointmentId, request, authorization);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
@@ -205,13 +226,13 @@ public class AppointmentController {
     public ResponseEntity<AppointmentResponse> requestReschedule(
             @PathVariable String appointmentId,
             @RequestBody Map<String, Object> body,
-            @AuthenticationPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal AuthResponse.User user,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
         try {
-            if (userDetails == null) {
+            if (user == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
-            String doctorId = userDetails.getUsername();
+            String doctorId = user.getId();
             String message = (String) body.get("message");
             LocalDateTime proposedStartTime = LocalDateTime.parse((String) body.get("proposedStartTime"));
             LocalDateTime proposedEndTime = LocalDateTime.parse((String) body.get("proposedEndTime"));
@@ -237,13 +258,13 @@ public class AppointmentController {
     @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<AppointmentResponse> completeAppointment(
             @PathVariable String appointmentId,
-            @AuthenticationPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal AuthResponse.User user,
             @RequestHeader(value = "Authorization", required = false) String authorization) {
         try {
-            if (userDetails == null) {
+            if (user == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
-            String doctorId = userDetails.getUsername();
+            String doctorId = user.getId();
             AppointmentResponse result = appointmentService.completeAppointment(doctorId, appointmentId, authorization);
             return ResponseEntity.ok(result);
         } catch (Exception e) {
