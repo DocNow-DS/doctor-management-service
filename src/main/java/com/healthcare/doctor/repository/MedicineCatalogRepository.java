@@ -5,6 +5,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface MedicineCatalogRepository extends MongoRepository<MedicineCatalog, String> {
@@ -14,4 +15,6 @@ public interface MedicineCatalogRepository extends MongoRepository<MedicineCatal
     boolean existsByNameIgnoreCaseAndIdNot(String name, String id);
 
     List<MedicineCatalog> findByActiveTrue();
+
+    Optional<MedicineCatalog> findByNameIgnoreCaseAndActiveTrue(String name);
 }

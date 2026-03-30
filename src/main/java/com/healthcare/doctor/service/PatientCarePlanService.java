@@ -2,12 +2,15 @@ package com.healthcare.doctor.service;
 
 import com.healthcare.doctor.model.PatientCarePlan;
 import com.healthcare.doctor.model.PatientCarePlan.CarePlanStatus;
+import com.healthcare.doctor.repository.MedicineCatalogRepository;
 import com.healthcare.doctor.repository.PatientCarePlanRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,6 +24,7 @@ import java.util.Optional;
 public class PatientCarePlanService {
 
     private final PatientCarePlanRepository carePlanRepository;
+    private final MedicineCatalogRepository medicineCatalogRepository;
     private final PatientServiceClient patientServiceClient;
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -52,6 +56,12 @@ public class PatientCarePlanService {
         if (plan.getNextVisitDays() != null && plan.getNextVisitDays() > 0) {
             plan.setNextVisitDate(LocalDate.now().plusDays(plan.getNextVisitDays()));
         }
+
+        // Resolve and persist medicine prices from medicine catalog before save
+        resolveMedicinePricesFromCatalog(plan);
+
+        // Auto-calculate total bill from medicine prices
+        plan.setTotalBill(calculateTotalBill(plan));
 
         return carePlanRepository.save(plan);
     }
@@ -116,6 +126,7 @@ public class PatientCarePlanService {
         // Update medicines
         if (updatedPlan.getMedicines() != null) {
             existing.setMedicines(updatedPlan.getMedicines());
+            resolveMedicinePricesFromCatalog(existing);
         }
 
         // Update allergies
@@ -140,9 +151,63 @@ public class PatientCarePlanService {
         }
 
         // Always update timestamp
+        existing.setTotalBill(calculateTotalBill(existing));
         existing.setUpdatedAt(LocalDateTime.now());
 
         return carePlanRepository.save(existing);
+    }
+
+    private BigDecimal calculateTotalBill(PatientCarePlan plan) {
+        if (plan.getMedicines() == null || plan.getMedicines().isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        return plan.getMedicines().stream()
+                .map(item -> item.getPrice() == null ? BigDecimal.ZERO : item.getPrice())
+                .peek(price -> {
+                    if (price.compareTo(BigDecimal.ZERO) < 0) {
+                        throw new RuntimeException("Medicine price in care plan must be 0 or greater");
+                    }
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .stripTrailingZeros();
+    }
+
+    private void resolveMedicinePricesFromCatalog(PatientCarePlan plan) {
+        if (plan.getMedicines() == null || plan.getMedicines().isEmpty()) {
+            return;
+        }
+
+        List<com.healthcare.doctor.model.MedicineItem> resolved = new ArrayList<>();
+        for (com.healthcare.doctor.model.MedicineItem item : plan.getMedicines()) {
+            if (item == null) continue;
+
+            String normalizedName = item.getMedicineName() == null ? "" : item.getMedicineName().trim();
+            if (normalizedName.isBlank()) continue;
+
+            item.setMedicineName(normalizedName);
+
+            medicineCatalogRepository.findByNameIgnoreCaseAndActiveTrue(normalizedName)
+                    .ifPresentOrElse(
+                            catalogItem -> {
+                                if (catalogItem.getPrice() == null) {
+                                    throw new RuntimeException("Medicine catalog price is missing for: " + normalizedName);
+                                }
+                                item.setPrice(catalogItem.getPrice());
+                            },
+                            () -> {
+                                if (item.getPrice() == null) {
+                                    throw new RuntimeException("Price not found in medicine catalog for: " + normalizedName);
+                                }
+                                if (item.getPrice().compareTo(BigDecimal.ZERO) < 0) {
+                                    throw new RuntimeException("Medicine price in care plan must be 0 or greater");
+                                }
+                            });
+
+            resolved.add(item);
+        }
+
+        plan.setMedicines(resolved);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

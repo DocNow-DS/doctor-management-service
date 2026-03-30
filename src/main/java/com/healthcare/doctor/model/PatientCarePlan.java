@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -75,6 +76,9 @@ public class PatientCarePlan {
 
     /** Auto-calculated: createdAt.toLocalDate() + nextVisitDays */
     private LocalDate nextVisitDate;
+
+    /** Auto-calculated total from medicine prices in this plan */
+    private BigDecimal totalBill;
 
     // ── Status ────────────────────────────────────────────────────────────────
 

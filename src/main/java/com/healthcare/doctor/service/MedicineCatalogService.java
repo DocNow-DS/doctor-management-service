@@ -5,6 +5,7 @@ import com.healthcare.doctor.repository.MedicineCatalogRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -23,10 +24,16 @@ public class MedicineCatalogService {
         if (medicineCatalogRepository.existsByNameIgnoreCase(normalizedName)) {
             throw new RuntimeException("Medicine already exists");
         }
+        if (medicine.getPrice() == null) {
+            throw new RuntimeException("Medicine price is required");
+        }
+        if (medicine.getPrice().compareTo(BigDecimal.ZERO) < 0) {
+            throw new RuntimeException("Medicine price must be 0 or greater");
+        }
 
         LocalDateTime now = LocalDateTime.now();
         medicine.setName(normalizedName);
-        medicine.setGenericName(medicine.getGenericName() == null ? null : medicine.getGenericName().trim());
+        medicine.setPrice(medicine.getPrice().stripTrailingZeros());
         medicine.setForm(medicine.getForm() == null ? null : medicine.getForm().trim());
         medicine.setStrength(medicine.getStrength() == null ? null : medicine.getStrength().trim());
         medicine.setNotes(medicine.getNotes() == null ? null : medicine.getNotes().trim());
@@ -60,8 +67,11 @@ public class MedicineCatalogService {
         }
 
         existing.setName(normalizedName);
-        if (updates.getGenericName() != null) {
-            existing.setGenericName(updates.getGenericName().trim());
+        if (updates.getPrice() != null) {
+            if (updates.getPrice().compareTo(BigDecimal.ZERO) < 0) {
+                throw new RuntimeException("Medicine price must be 0 or greater");
+            }
+            existing.setPrice(updates.getPrice().stripTrailingZeros());
         }
         if (updates.getForm() != null) {
             existing.setForm(updates.getForm().trim());
