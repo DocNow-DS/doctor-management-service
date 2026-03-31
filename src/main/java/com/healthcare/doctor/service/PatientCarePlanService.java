@@ -4,6 +4,7 @@ import com.healthcare.doctor.model.PatientCarePlan;
 import com.healthcare.doctor.model.PatientCarePlan.CarePlanStatus;
 import com.healthcare.doctor.repository.MedicineCatalogRepository;
 import com.healthcare.doctor.repository.PatientCarePlanRepository;
+import com.healthcare.doctor.repository.PreVisitServiceCatalogRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +26,7 @@ public class PatientCarePlanService {
 
     private final PatientCarePlanRepository carePlanRepository;
     private final MedicineCatalogRepository medicineCatalogRepository;
+    private final PreVisitServiceCatalogRepository preVisitServiceCatalogRepository;
     private final PatientServiceClient patientServiceClient;
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -59,6 +61,7 @@ public class PatientCarePlanService {
 
         // Resolve and persist medicine prices from medicine catalog before save
         resolveMedicinePricesFromCatalog(plan);
+        resolvePreVisitServicePricesFromCatalog(plan);
 
         // Auto-calculate total bill from medicine prices
         plan.setTotalBill(calculateTotalBill(plan));
@@ -142,6 +145,7 @@ public class PatientCarePlanService {
         // Update pre-visit services
         if (updatedPlan.getPreVisitServices() != null) {
             existing.setPreVisitServices(updatedPlan.getPreVisitServices());
+            resolvePreVisitServicePricesFromCatalog(existing);
         }
 
         // Update next visit schedule — recalculate next visit date
@@ -158,19 +162,31 @@ public class PatientCarePlanService {
     }
 
     private BigDecimal calculateTotalBill(PatientCarePlan plan) {
-        if (plan.getMedicines() == null || plan.getMedicines().isEmpty()) {
-            return BigDecimal.ZERO;
-        }
-
-        return plan.getMedicines().stream()
+        BigDecimal medicineTotal = BigDecimal.ZERO;
+        if (plan.getMedicines() != null && !plan.getMedicines().isEmpty()) {
+            medicineTotal = plan.getMedicines().stream()
                 .map(item -> item.getPrice() == null ? BigDecimal.ZERO : item.getPrice())
                 .peek(price -> {
                     if (price.compareTo(BigDecimal.ZERO) < 0) {
                         throw new RuntimeException("Medicine price in care plan must be 0 or greater");
                     }
                 })
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .stripTrailingZeros();
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
+
+        BigDecimal serviceTotal = BigDecimal.ZERO;
+        if (plan.getPreVisitServices() != null && !plan.getPreVisitServices().isEmpty()) {
+            serviceTotal = plan.getPreVisitServices().stream()
+                    .map(item -> item.getPrice() == null ? BigDecimal.ZERO : item.getPrice())
+                    .peek(price -> {
+                        if (price.compareTo(BigDecimal.ZERO) < 0) {
+                            throw new RuntimeException("Pre-visit service price in care plan must be 0 or greater");
+                        }
+                    })
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
+
+        return medicineTotal.add(serviceTotal).stripTrailingZeros();
     }
 
     private void resolveMedicinePricesFromCatalog(PatientCarePlan plan) {
@@ -208,6 +224,43 @@ public class PatientCarePlanService {
         }
 
         plan.setMedicines(resolved);
+    }
+
+    private void resolvePreVisitServicePricesFromCatalog(PatientCarePlan plan) {
+        if (plan.getPreVisitServices() == null || plan.getPreVisitServices().isEmpty()) {
+            return;
+        }
+
+        List<com.healthcare.doctor.model.PreVisitService> resolved = new ArrayList<>();
+        for (com.healthcare.doctor.model.PreVisitService item : plan.getPreVisitServices()) {
+            if (item == null) continue;
+
+            String normalizedName = item.getServiceName() == null ? "" : item.getServiceName().trim();
+            if (normalizedName.isBlank()) continue;
+
+            item.setServiceName(normalizedName);
+
+            preVisitServiceCatalogRepository.findByServiceNameIgnoreCaseAndActiveTrue(normalizedName)
+                    .ifPresentOrElse(
+                            catalogItem -> {
+                                if (catalogItem.getPrice() == null) {
+                                    throw new RuntimeException("Pre-visit service catalog price is missing for: " + normalizedName);
+                                }
+                                item.setPrice(catalogItem.getPrice());
+                            },
+                            () -> {
+                                if (item.getPrice() == null) {
+                                    throw new RuntimeException("Price not found in pre-visit service catalog for: " + normalizedName);
+                                }
+                                if (item.getPrice().compareTo(BigDecimal.ZERO) < 0) {
+                                    throw new RuntimeException("Pre-visit service price in care plan must be 0 or greater");
+                                }
+                            });
+
+            resolved.add(item);
+        }
+
+        plan.setPreVisitServices(resolved);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

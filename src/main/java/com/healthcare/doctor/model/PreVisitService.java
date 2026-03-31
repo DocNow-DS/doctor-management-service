@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 /**
  * Embedded value object — NOT a separate MongoDB collection.
  * Represents a lab test / investigation the patient should do
@@ -21,4 +23,7 @@ public class PreVisitService {
 
     /** Any extra instructions for this test, e.g. "Fasting required" */
     private String notes;
+
+    /** Price of this service entry in the care plan */
+    private BigDecimal price;
 }
