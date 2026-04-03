@@ -1,16 +1,17 @@
-FROM maven:3.9.9-eclipse-temurin-17 AS build
+# Multi-stage build for Java 17 Spring Boot application
+FROM maven:3.9.9-eclipse-temurin-17 AS builder
+
 WORKDIR /app
-
 COPY pom.xml .
-RUN mvn -B -DskipTests dependency:go-offline
-
 COPY src ./src
 RUN mvn -B -DskipTests clean package
 
-FROM eclipse-temurin:17-jre-jammy
-WORKDIR /app
+# Runtime stage
+FROM eclipse-temurin:17-jre-alpine
 
-COPY --from=build /app/target/*.jar app.jar
+WORKDIR /app
+COPY --from=builder /app/target/doctor-management-service-*.jar app.jar
 
 EXPOSE 8082
+
 ENTRYPOINT ["java", "-jar", "app.jar"]
