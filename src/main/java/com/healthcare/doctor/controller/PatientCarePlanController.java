@@ -114,9 +114,15 @@ public class PatientCarePlanController {
      * Useful for seeing a patient's full history.
      */
     @GetMapping("/patient/{patientId}")
-    @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<List<PatientCarePlan>> getCarePlansByPatient(@PathVariable String patientId) {
-        List<PatientCarePlan> plans = carePlanService.getCarePlansByPatient(patientId);
+    @PreAuthorize("hasRole('DOCTOR') or hasRole('PATIENT')")
+    public ResponseEntity<?> getCarePlansByPatient(@PathVariable String patientId,
+                                                   @AuthenticationPrincipal AuthResponse.User authenticatedUser) {
+        String effectivePatientId = resolveEffectivePatientId(patientId, authenticatedUser);
+        if (effectivePatientId == null || effectivePatientId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Unable to resolve patient access"));
+        }
+        List<PatientCarePlan> plans = carePlanService.getCarePlansByPatient(effectivePatientId);
         return ResponseEntity.ok(plans);
     }
 
@@ -164,10 +170,42 @@ public class PatientCarePlanController {
      * Useful to show what's currently in effect for a patient.
      */
     @GetMapping("/patient/{patientId}/active")
-    @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<List<PatientCarePlan>> getActiveCarePlansByPatient(@PathVariable String patientId) {
-        List<PatientCarePlan> plans = carePlanService.getActiveCarePlansByPatient(patientId);
+    @PreAuthorize("hasRole('DOCTOR') or hasRole('PATIENT')")
+    public ResponseEntity<?> getActiveCarePlansByPatient(@PathVariable String patientId,
+                                                         @AuthenticationPrincipal AuthResponse.User authenticatedUser) {
+        String effectivePatientId = resolveEffectivePatientId(patientId, authenticatedUser);
+        if (effectivePatientId == null || effectivePatientId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Unable to resolve patient access"));
+        }
+        List<PatientCarePlan> plans = carePlanService.getActiveCarePlansByPatient(effectivePatientId);
         return ResponseEntity.ok(plans);
+    }
+
+    private String resolveEffectivePatientId(String requestedPatientId, AuthResponse.User authenticatedUser) {
+        if (authenticatedUser == null) return null;
+        String[] roles = authenticatedUser.getRoles();
+        if (roles == null || roles.length == 0) return null;
+
+        boolean isDoctorOrAdmin = java.util.Arrays.stream(roles)
+                .filter(java.util.Objects::nonNull)
+                .map(String::trim)
+                .map(String::toUpperCase)
+                .anyMatch(r -> r.equals("DOCTOR") || r.equals("ADMIN"));
+        if (isDoctorOrAdmin) return requestedPatientId;
+
+        boolean isPatient = java.util.Arrays.stream(roles)
+                .filter(java.util.Objects::nonNull)
+                .map(String::trim)
+                .map(String::toUpperCase)
+                .anyMatch(r -> r.equals("PATIENT"));
+        if (!isPatient) return null;
+
+        String authPatientId = authenticatedUser.getId();
+        if (authPatientId == null || authPatientId.isBlank()) {
+            authPatientId = authenticatedUser.getUsername();
+        }
+        return authPatientId;
     }
 
     // =========================================================================
