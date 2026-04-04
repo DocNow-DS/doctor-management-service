@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 /**
  * Embedded value object — NOT a separate MongoDB collection.
  * Used as a list item inside PatientCarePlan.
@@ -29,4 +31,7 @@ public class MedicineItem {
 
     /** Extra instructions, e.g. "After meals", "With plenty of water" */
     private String instructions;
+
+    /** Price of this medicine entry in the care plan */
+    private BigDecimal price;
 }
