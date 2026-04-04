@@ -2,8 +2,8 @@ package com.healthcare.doctor.client;
 
 import com.healthcare.doctor.dto.AppointmentResponse;
 import com.healthcare.doctor.dto.DoctorActionRequest;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -20,11 +20,15 @@ import java.util.List;
  * Client to communicate with Appointment Management Service (default port 8080)
  */
 @Component
-@RequiredArgsConstructor
-@Slf4j
 public class AppointmentServiceClient {
 
+    private static final Logger log = LoggerFactory.getLogger(AppointmentServiceClient.class);
+
     private final RestTemplate restTemplate;
+
+    public AppointmentServiceClient(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
 
     @Value("${appointment.service.url:http://localhost:8080}")
     private String appointmentServiceBaseUrl;
