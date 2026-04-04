@@ -164,6 +164,26 @@ public class PatientCarePlanController {
     }
 
     /**
+     * POST /api/care-plans/doctor/{doctorId}/migrate-patient-ids
+     *
+     * One-time migration endpoint to replace legacy alias patient IDs
+     * (username/email) with canonical patient IDs in this doctor's care plans.
+     */
+    @PostMapping("/doctor/{doctorId}/migrate-patient-ids")
+    @PreAuthorize("hasRole('DOCTOR') and #doctorId == authentication.principal.id")
+    public ResponseEntity<?> migratePatientIdsForDoctor(@PathVariable String doctorId) {
+        try {
+            int changed = carePlanService.migrateLegacyPatientIdsForDoctor(doctorId);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Patient ID migration completed",
+                    "updatedCount", changed
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    /**
      * GET /api/care-plans/patient/{patientId}/active
      *
      * Get only ACTIVE care plans for a specific patient.
