@@ -1,7 +1,6 @@
 package com.healthcare.doctor.service;
 
 import com.healthcare.doctor.dto.AuthResponse;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -70,6 +69,7 @@ public class PatientServiceClient {
      * Resolve patient identifier aliases (username/email/userId) into canonical patient id.
      * Returns the original identifier when no match can be found.
      */
+    @SuppressWarnings("unchecked")
     public String resolveCanonicalPatientId(String identifier) {
         String normalized = normalize(identifier);
         if (normalized.isBlank()) {
@@ -78,15 +78,7 @@ public class PatientServiceClient {
 
         try {
             String url = patientServiceUrl + "/api/patient/all";
-            ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    null,
-                    new ParameterizedTypeReference<List<Map<String, Object>>>() {
-                    }
-            );
-
-            List<Map<String, Object>> patients = response.getBody();
+            List<Map<String, Object>> patients = (List<Map<String, Object>>) (List<?>) restTemplate.getForObject(url, List.class);
             if (patients == null) {
                 patients = Collections.emptyList();
             }

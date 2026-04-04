@@ -2,7 +2,6 @@ package com.healthcare.doctor.controller;
 
 import com.healthcare.doctor.model.PreVisitServiceCatalog;
 import com.healthcare.doctor.service.PreVisitServiceCatalogService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,11 +14,14 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/pre-visit-services")
-@RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class PreVisitServiceCatalogController {
 
     private final PreVisitServiceCatalogService serviceCatalogService;
+
+    public PreVisitServiceCatalogController(PreVisitServiceCatalogService serviceCatalogService) {
+        this.serviceCatalogService = serviceCatalogService;
+    }
 
     @PostMapping
     @PreAuthorize("hasRole('DOCTOR')")
