@@ -228,6 +228,19 @@ public class PatientCarePlanService {
     }
 
     /**
+     * Mark a care plan as COMPLETED without performing doctor ownership checks.
+     * Intended for internal system use (e.g., payment confirmation).
+     */
+    public PatientCarePlan completeCarePlanInternal(String id) {
+        PatientCarePlan plan = carePlanRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Care plan not found: " + id));
+
+        plan.setStatus(CarePlanStatus.COMPLETED);
+        plan.setUpdatedAt(LocalDateTime.now());
+        return carePlanRepository.save(plan);
+    }
+
+    /**
      * Mark a care plan as CANCELLED.
      * Only the owning doctor can do this.
      */
