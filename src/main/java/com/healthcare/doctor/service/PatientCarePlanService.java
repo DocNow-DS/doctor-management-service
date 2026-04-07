@@ -1,11 +1,13 @@
 package com.healthcare.doctor.service;
 
+import com.healthcare.doctor.client.NotificationServiceClient;
 import com.healthcare.doctor.model.PatientCarePlan;
 import com.healthcare.doctor.model.PatientCarePlan.CarePlanStatus;
 import com.healthcare.doctor.repository.MedicineCatalogRepository;
 import com.healthcare.doctor.repository.PatientCarePlanRepository;
 import com.healthcare.doctor.repository.PreVisitServiceCatalogRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -24,12 +26,14 @@ import java.util.Optional;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PatientCarePlanService {
 
     private final PatientCarePlanRepository carePlanRepository;
     private final MedicineCatalogRepository medicineCatalogRepository;
     private final PreVisitServiceCatalogRepository preVisitServiceCatalogRepository;
     private final PatientServiceClient patientServiceClient;
+    private final NotificationServiceClient notificationServiceClient;
 
     // ─────────────────────────────────────────────────────────────────────────
     // CREATE
@@ -63,8 +67,9 @@ public class PatientCarePlanService {
         plan.setUpdatedAt(LocalDateTime.now());
 
         // Auto-calculate next visit date if nextVisitDays is provided
-        if (plan.getNextVisitDays() != null && plan.getNextVisitDays() > 0) {
-            plan.setNextVisitDate(LocalDate.now().plusDays(plan.getNextVisitDays()));
+        Long nextVisitDays = plan.getNextVisitDays();
+        if (nextVisitDays != null && nextVisitDays > 0) {
+            plan.setNextVisitDate(LocalDate.now().plusDays(nextVisitDays));
         }
 
         // Resolve and persist medicine prices from medicine catalog before save
@@ -74,7 +79,39 @@ public class PatientCarePlanService {
         // Auto-calculate total bill from medicine prices
         plan.setTotalBill(calculateTotalBill(plan));
 
-        return carePlanRepository.save(plan);
+        PatientCarePlan savedPlan = carePlanRepository.save(plan);
+        
+        // Send notification to patient about the new care plan
+        sendCarePlanNotification(savedPlan);
+        
+        return savedPlan;
+    }
+
+    private void sendCarePlanNotification(PatientCarePlan carePlan) {
+        try {
+            String patientId = carePlan.getPatientId();
+            String doctorId = carePlan.getDoctorId();
+            String carePlanId = carePlan.getId();
+            String appointmentId = carePlan.getAppointmentId();
+            String consultationNotes = carePlan.getConsultationNotes();
+            
+            if (patientId != null && !patientId.isBlank()) {
+                notificationServiceClient.sendCarePlanNotification(
+                    patientId,
+                    doctorId,
+                    carePlanId,
+                    appointmentId,
+                    consultationNotes,
+                    null  // Token is not available in this context
+                );
+                log.info("Care plan notification sent to patient {} for care plan {}", patientId, carePlanId);
+            } else {
+                log.warn("Cannot send care plan notification: patientId is null or blank for care plan {}", carePlanId);
+            }
+        } catch (Exception e) {
+            log.error("Failed to send care plan notification: {}", e.getMessage(), e);
+            // Don't throw exception - notification failure shouldn't break care plan creation
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -146,7 +183,7 @@ public class PatientCarePlanService {
             List<PatientCarePlan> normalized = normalizeAndPersistPatientIds(allPlans);
             plans = normalized.stream()
                     .filter(plan -> canonicalPatientId.equals(safeTrim(plan.getPatientId())))
-                    .filter(plan -> plan.getStatus() == CarePlanStatus.ACTIVE)
+                    .filter(plan -> Boolean.TRUE.equals(plan.getStatus()))
                     .toList();
         }
         return normalizeAndPersistPatientIds(plans);
@@ -251,9 +288,10 @@ public class PatientCarePlanService {
         }
 
         // Update next visit schedule — recalculate next visit date
-        if (updatedPlan.getNextVisitDays() != null && updatedPlan.getNextVisitDays() > 0) {
-            existing.setNextVisitDays(updatedPlan.getNextVisitDays());
-            existing.setNextVisitDate(LocalDate.now().plusDays(updatedPlan.getNextVisitDays()));
+        Long updatedNextVisitDays = updatedPlan.getNextVisitDays();
+        if (updatedNextVisitDays != null && updatedNextVisitDays > 0) {
+            existing.setNextVisitDays(updatedNextVisitDays);
+            existing.setNextVisitDate(LocalDate.now().plusDays(updatedNextVisitDays));
         }
 
         // Always update timestamp
