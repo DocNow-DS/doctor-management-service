@@ -85,6 +85,62 @@ public class PatientCarePlan {
     /** Current lifecycle status of this care plan */
     private CarePlanStatus status;
 
+    public String getPatientId() {
+        return patientId;
+    }
+
+    public String getDoctorId() {
+        return doctorId;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getAppointmentId() {
+        return appointmentId;
+    }
+
+    public String getConsultationNotes() {
+        return consultationNotes;
+    }
+
+    public void setPatientId(String canonicalPatientId) {
+        this.patientId = canonicalPatientId;
+    }
+
+    public void setStatus(CarePlanStatus carePlanStatus) {
+        this.status = carePlanStatus;
+    }
+
+    public void setCreatedAt(LocalDateTime now) {
+        this.createdAt = now;
+    }
+
+    public void setUpdatedAt(LocalDateTime now) {
+        this.updatedAt = now;
+    }
+
+    public Long getNextVisitDays() {
+        return nextVisitDays != null ? nextVisitDays.longValue() : null;
+    }
+
+    public void setNextVisitDate(LocalDate localDate) {
+        this.nextVisitDate = localDate;
+    }
+
+    public void setTotalBill(BigDecimal bigDecimal) {
+        this.totalBill = bigDecimal;
+    }
+
+    public Boolean getStatus() {
+        return status != null && status == CarePlanStatus.ACTIVE;
+    }
+
+    public void setNextVisitDays(Long nextVisitDays) {
+        this.nextVisitDays = nextVisitDays != null ? nextVisitDays.intValue() : null;
+    }
+
     public enum CarePlanStatus {
         ACTIVE,     // Plan is currently in effect
         COMPLETED,  // Doctor marked care as done
