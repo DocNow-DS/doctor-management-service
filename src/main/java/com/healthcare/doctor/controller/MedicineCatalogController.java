@@ -7,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,7 +27,7 @@ public class MedicineCatalogController {
 
     @PostMapping
     @PreAuthorize("hasRole('DOCTOR')")
-    public ResponseEntity<MedicineCatalog> createMedicine(
+    public ResponseEntity<?> createMedicine(
             @RequestBody MedicineCatalog medicine,
             @AuthenticationPrincipal UserDetails userDetails) {
         try {
@@ -33,8 +35,19 @@ public class MedicineCatalogController {
             MedicineCatalog created = medicineCatalogService.createMedicine(medicine, createdBy);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (RuntimeException ex) {
-            return ResponseEntity.badRequest().body(null);
+            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
         }
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidPayload(HttpMessageNotReadableException ex) {
+        String rootMessage = ex.getMostSpecificCause() != null
+                ? ex.getMostSpecificCause().getMessage()
+                : ex.getMessage();
+        return ResponseEntity.badRequest().body(Map.of(
+                "message", "Invalid request payload",
+                "details", rootMessage == null ? "Malformed JSON body" : rootMessage
+        ));
     }
 
     @GetMapping
